@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Tasks App</title>
+    <meta charset=UTF-8>
+  </head>
+  <body>
+    <div id="header"></div>
+    <div id="content"></div>
+    <div id="footer"></div>
+    <div id="newListModule" class="module">
+      <div class="module-content">
+        <h3 class="new-list-title">New List Name:</h3>
+        <div class="new-list-input">
+          <input id="newList" name="newList" type="text">
+        </div>
+        <div class="new-list-buttons">
+          <button id="create-list">Create List</button>
+          <button id="cancel-create">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div id="newTaskModule" class="module">
+      <div class="module-content">
+        <h2 id="listBeingAddedTo" style="text-align: center;"></h2>
+        <h3 class="new-task-title">Create A New Task:</h3>
+        <div class="new-list-input">
+          <label for="newTaskTitle">Task Title: </label>
+          <input id="newTaskTitle" name="newTaskTitle" type="text">
+          <br>
+          <label for="newDescription">Description: </label>
+          <input id="newDescription" name="newDescription" type="text">
+          <br>
+          <label for="newDueDate">Due Date: </label>
+          <input id="newDueDate" name="newDueDate" type="date">
+          <br>
+          <label for="priority">Priority: </label>
+          <select id="priority" name="priority">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="new-task-buttons">
+          <button id="create-task">Create Task</button>
+          <button id="cancel-task-create">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <script src="main.js"></script>
+  </body>
+</html>
