@@ -4,6 +4,22 @@ const appStorage = (() => {
   const taskArray = [];
   const addNewList = (newList) => listArray.push(newList);
   const addNewTask = (newItem) => taskArray.push(newItem);
+  const addListsFromLocalStorage = (LocalListArray) => {
+    LocalListArray.forEach( function(list) {
+      addNewList(list);
+    });
+  };
+  const addTasksFromLocalStorage = (LocalTasksArray) => {
+    LocalTasksArray.forEach( function (task) {
+      addNewTask(task);
+    });
+  };
+  const clearAllLists = () => {
+    listArray.length = 0;
+    taskArray.length = 0;
+    localStorage.removeItem("Lists");
+    localStorage.removeItem("Tasks");
+  };
   const getTheLists = () => {
     return listArray;
   };
@@ -25,6 +41,9 @@ const appStorage = (() => {
   return {
     addNewList,
     addNewTask,
+    addListsFromLocalStorage,
+    addTasksFromLocalStorage,
+    clearAllLists,
     getTheLists,
     getTheTasks,
     updateAList,
@@ -34,7 +53,30 @@ const appStorage = (() => {
   };
 })();
 
-
+function storageAvailable(type) {
+  var storage;
+  try {
+      storage = window[type];
+      var x = '__storage_test__';
+      storage.setItem(x, x);
+      storage.removeItem(x);
+      return true;
+  }
+  catch(e) {
+      return e instanceof DOMException && (
+          // everything except Firefox
+          e.code === 22 ||
+          // Firefox
+          e.code === 1014 ||
+          // test name field too, because code might not be present
+          // everything except Firefox
+          e.name === 'QuotaExceededError' ||
+          // Firefox
+          e.name === 'NS_ERROR_DOM_QUOTA_REACHED') &&
+          // acknowledge QuotaExceededError only if there's something already stored
+          (storage && storage.length !== 0);
+  }
+}
 
 function loadApp() {
   renderHeader();
@@ -50,33 +92,33 @@ function renderHeader() {
 }
 
 function renderContent() {
-  if(isLocalInfo()){
-    document.getElementById('content').innerHTML = renderLocalInfo();
-  } else {
-    document.getElementById('content').innerHTML = renderDefaultInfo();
+  getLocalStorage();
+  document.getElementById('content').innerHTML = renderAllLists();
+}
+
+function getLocalStorage(){
+  if (storageAvailable('localStorage')) {
+    if("Lists" in localStorage){
+      const localStorageLists = JSON.parse(localStorage.getItem("Lists"));
+      localStorageLists.forEach( function (list) {
+        const storageList = NewList(list.title);
+        appStorage.addNewList(storageList);
+      });
+     }
+     if("Tasks" in localStorage){
+      const localStorageTasks = JSON.parse(localStorage.getItem("Tasks"));
+      localStorageTasks.forEach( function (task) {
+        const storageTask = NewTask(task.list, task.title, task.description, task.dueDate, task.priority);
+        appStorage.addNewTask(storageTask);
+      });
+    }
   }
-}
-
-function isLocalInfo(){
-  return false;
-}
-
-function renderDefaultInfo() {
-  return '<div id="defaultTaskList"><h1 style="text-align:center;">Task Lists</h1><div id="default-task-list" style="display: flex; justify-content: center; align-items: center"><h3 style="text-align: center;">Create Your First List</h3></div>';
-}
-
-function renderLocalInfo(){
-  const infoArray = getLocalInfo();
-}
-
-function getLocalInfo(){
-
 }
 
 
 function renderFooter() {
   const footer = document.getElementById('footer');
-  footer.innerHTML = '<footer style="display:flex; justify-content: space-between; align-items: center;"><h4 id="clearAllProjects">Clear All Projects</h4><h3>@2020 Tasks_App</h3><a href="https://github.com/thecodediver" target="_blank" style="text-align:center;">App Developed By<br>The Code Diver</a></footer>';
+  footer.innerHTML = '<footer style="display:flex; justify-content: space-between; align-items: center;"><h4 id="clearAllLists">Clear All Lists</h4><h3>@2020 Tasks_App</h3><a id="theCodeDiver" href="https://github.com/thecodediver" target="_blank" style="text-align:center;">App Developed By<br>The Code Diver</a></footer>';
 }
 
 //EVENT TRIGGERS
@@ -126,6 +168,23 @@ function addEvents() {
   if(singleLists.length > 0){
     singleLists.forEach( function (list) {
       list.addEventListener('click', openListPage);
+    });
+  }
+
+  const backToLists = document.getElementById('backArrow');
+  if(backToLists !== null){
+    backToLists.addEventListener('click', function(){
+      document.getElementById('content').innerHTML = renderAllLists();
+      addEvents();
+    });
+  }
+
+  const clearAllLists = document.getElementById('clearAllLists');
+  if(clearAllLists !== null){
+    clearAllLists.addEventListener('click', function(){
+      appStorage.clearAllLists();
+      document.getElementById('content').innerHTML = renderAllLists();
+      addEvents();
     });
   }
 }
@@ -222,23 +281,25 @@ function renderTaskModule(listName) {
 }
 
 function renderAllLists(){
-  let listsHTMLString = '<div id="defaultTaskList"><h1 style="text-align:center;">Task Lists</h1><div id="default-task-list" style="display: flex; justify-content: center; align-items: center"><h3>Create Another List</h3></div>';
+  let listsHTMLString = '<div id="defaultTaskList"><h1 style="text-align:center;">Task Lists</h1><div id="default-task-list" style="display: flex; justify-content: center; align-items: center"><h3 style="text-align: center;">Create Your First List</h3></div>';
   const currentLists = appStorage.getTheLists();
-  currentLists.forEach(function (list) {
-    listsHTMLString += `<div id="${list.getTitle()}" class="single-list" style="display: flex; justify-content: center; align-items: center">${list.getTitle()}</div>`;
-  });
+  if(currentLists.length > 0){
+    listsHTMLString = '<div id="defaultTaskList"><h1 style="text-align:center;">Task Lists</h1><div id="default-task-list" style="display: flex; justify-content: center; align-items: center"><h3>Create Another List</h3></div>';
+    currentLists.forEach(function (list) {
+      listsHTMLString += `<div id="${list.getTitle()}" class="single-list" style="display: flex; justify-content: center; align-items: center">${list.getTitle()}</div>`;
+    });
+  }
   listsHTMLString += '</div>';
-
   return listsHTMLString;
 }
 
 function renderListPage(listId){
   let listName = listId;
-  let singleListHTMLString = `<div id="aListPage"><h1 style="text-align:center;">${listName}</h1><div id="create-a-task" class="${listName}" style="display: flex; justify-content: center; align-items: center">Create Your First Task</div>`;
+  let singleListHTMLString = `<div id="aListPage"><div id="backArrow"><</div><h1 style="text-align:center;">${listName}</h1><div id="create-a-task" class="${listName}" style="display: flex; justify-content: center; align-items: center">Create Your First Task</div>`;
   let currentList = appStorage.getTheTasks();
   let filteredList = [];
   if(currentList.length > 0){
-    singleListHTMLString = `<div id="aListPage"><h1 style="text-align:center;">${listName}</h1><div id="create-a-task" class="${listName}" style="display: flex; justify-content: center; align-items: center"><h3>Create Another Task</h3></div>`;
+    singleListHTMLString = `<div id="aListPage"><div id="backArrow"><</div><h1 style="text-align:center;">${listName}</h1><div id="create-a-task" class="${listName}" style="display: flex; justify-content: center; align-items: center">Create Another Task</div>`;
     filteredList = currentList.filter(function (task) {
       return task.getList() === listName;
     });
@@ -261,17 +322,48 @@ function filterUserInput(inputValue){
 function storeNewListData(listName) {
   const newList = NewList(listName);
   appStorage.addNewList(newList);
+  saveListsToLocalStorage();
 }
 
 function storeNewTaskData(list, title, description, dueDate, priority){
   const newTask = NewTask(list, title, description, dueDate, priority);
   appStorage.addNewTask(newTask);
+  saveTasksToLocalStorage();
+}
+
+function saveListsToLocalStorage() {
+  const currentListData = appStorage.getTheLists();
+  if (storageAvailable('localStorage')) {
+    const listStorageObjectArray = currentListData.map(item => {
+      const container = {};
+      container.title = item.getTitle();
+      return container;
+    });
+    localStorage.setItem("Lists", JSON.stringify(listStorageObjectArray));
+  }
+}
+
+function saveTasksToLocalStorage() {
+  const currentTaskData = appStorage.getTheTasks();
+  if (storageAvailable('localStorage')) {
+    const taskStorageObjectArray = currentTaskData.map(item => {
+      const container = {};
+      container.list = item.getList();
+      container.title = item.getTitle();
+      container.description = item.getDescription();
+      container.dueDate = item.getDueDate();
+      container.priority = item.getPriority();
+      return container;
+    })
+    localStorage.setItem("Tasks", JSON.stringify(taskStorageObjectArray));
+    console.log(taskStorageObjectArray);
+  }
 }
 
 const NewList = (listName) => {
   const title = listName;
   const getTitle = () => title;
-  return { getTitle }
+  return { getTitle };
 }
 
 const NewTask = (list, title, description, dueDate, priority) => {
